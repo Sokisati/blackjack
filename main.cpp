@@ -635,23 +635,21 @@ int main()
         riskOfDrawingCard = riskOfDrawingCardFunction(deckKnownToGlados,Glados.getTotalValueOfHand());
         winProb =  winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
 
-        cout<<"win prob:"<<winProb<<endl;
-        cout<<"risk of drawing: "<<riskOfDrawingCard<<endl;
-
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
         expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
 
         while(expectedValue>0)
         {
             drawCardFunction(deckKnownToGlados,actualDeck, true,Glados);
+            cout<<"Glados draws a card"<<endl;
             expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
         }
 
-        printDeckFunction(Glados.getCards());
+        cout<<"Open card of Glados is: "<<Glados.getPlayerOpenCardValue()<<endl;
+        cout<<"Your cards are: "<<endl;
         printDeckFunction(Human.getCards());
 
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
-        cout<<winProb<<endl;
 
         gladosStands = gladosStandFunction(winProb);
 
@@ -673,8 +671,24 @@ int main()
             }
             else if(question=="raise")
             {
-                cout<<"How much?"<<endl;
-                cin>>betRaise;
+                while(true)
+                {
+                    cout<<"How much?"<<endl;
+                    cin>>betRaise;
+                    if(betRaise>Glados.getWallet())
+                    {
+                        cout<<"Hold your horses, Glados doesn't have that much money. Most you can raise is: "<<Glados.getWallet()<<endl;
+                    }
+                    else if(betRaise>Human.getWallet())
+                    {
+                        cout<<"Hold your horses, you don't have that much money. Most you can raise is: "<<Human.getWallet()<<endl;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
 
                 Human.raiseBet(betRaise);
 
@@ -692,13 +706,15 @@ int main()
                 {
                     if(gladosStands)
                     {
+                        cout<<"Glados matches your bet"<<endl;
                         Glados.raiseBet(humanNewCard);
                     }
                     else
                     {
-                        cout<<"Human won"<<endl;
+                        cout<<"Glados retreats, Human won"<<endl;
                         Human.victory(Glados.getPotMoney());
                         Glados.defeat();
+                        break;
                     }
                 }
             }
@@ -707,6 +723,9 @@ int main()
                 if(Glados.getGameValue()==Human.getGameValue())
                 {
                     cout<<"It's a draw"<<endl;
+                    cout<<"Glados hand: "<<endl;
+                    printDeckFunction(Glados.getCards());
+                    cout<<endl;
                     Glados.draw();
                     Human.draw();
                     break;
@@ -715,15 +734,23 @@ int main()
                 {
 
                     cout<<"Glados won"<<endl;
+                    cout<<"Glados hand: "<<endl;
+                    printDeckFunction(Glados.getCards());
+                    cout<<endl;
                     Glados.victory(Human.getPotMoney());
                     Human.defeat();
                     break;
                 }
                 else
                 {
+
                     cout<<"Human won"<<endl;
+                    cout<<"Glados hand: "<<endl;
+                    printDeckFunction(Glados.getCards());
+                    cout<<endl;
                     Human.victory(Glados.getPotMoney());
                     Glados.defeat();
+                    break;
                 }
             }
             else
@@ -737,8 +764,10 @@ int main()
 
         }
 
+        cout<<endl;
         cout<<"glados wallet: "<<Glados.getWallet()<<endl;
         cout<<"human wallet: "<<Human.getWallet()<<endl;
+        cout<<endl;
 
     }
 
