@@ -622,7 +622,7 @@ int main()
     Player Glados(startingMoney);
     Player Human(startingMoney);
 
-    while(actualDeck.size()>4 && Glados.getWallet()>blindBet && Human.getWallet()>blindBet)
+    while(actualDeck.size()>4 && Glados.getWallet()>=blindBet && Human.getWallet()>=blindBet)
     {
         //deal the cards
         dealCardsFunction(deckKnownToGlados,actualDeck,Glados,Human);
@@ -689,7 +689,6 @@ int main()
                     }
                 }
 
-
                 Human.raiseBet(betRaise);
 
                 //will glados see?
@@ -702,21 +701,22 @@ int main()
                     gladosStands = gladosStandFunction(winProb);
                     humanNewCard = false;
                 }
-                else
-                {
+
                     if(gladosStands)
                     {
                         cout<<"Glados matches your bet"<<endl;
-                        Glados.raiseBet(humanNewCard);
+                        Glados.raiseBet(betRaise);
+                        cout<<endl;
                     }
                     else
                     {
                         cout<<"Glados retreats, Human won"<<endl;
                         Human.victory(Glados.getPotMoney());
                         Glados.defeat();
+                        cout<<endl;
                         break;
                     }
-                }
+
             }
             else if(question=="stand")
             {
@@ -728,6 +728,7 @@ int main()
                     cout<<endl;
                     Glados.draw();
                     Human.draw();
+                    cout<<endl;
                     break;
                 }
                 else if(Glados.getGameValue()>Human.getGameValue())
@@ -739,6 +740,7 @@ int main()
                     cout<<endl;
                     Glados.victory(Human.getPotMoney());
                     Human.defeat();
+                    cout<<endl;
                     break;
                 }
                 else
@@ -750,6 +752,7 @@ int main()
                     cout<<endl;
                     Human.victory(Glados.getPotMoney());
                     Glados.defeat();
+                    cout<<endl;
                     break;
                 }
             }
@@ -759,6 +762,7 @@ int main()
                 cout<<"Glados won"<<endl;
                 Glados.victory(Human.getPotMoney());
                 Human.defeat();
+                cout<<endl;
                 break;
             }
 
@@ -770,6 +774,8 @@ int main()
         cout<<endl;
 
     }
+
+
 
 
 
