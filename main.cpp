@@ -8,6 +8,8 @@
 
 using namespace std;
 
+mt19937 mt(time(nullptr));
+
 class Player{
 private:
     int wallet;
@@ -344,45 +346,63 @@ double winProbabilityFunction(vector<int> knownDeck, int openCardValue,int glado
 {
     //probably the most important function in this program
     int possibleHandCombinations = combinationFunction(knownDeck.size(),numberOfUnknownCards);
-    if(possibleHandCombinations>50000)
-    {
-        numberOfUnknownCards--;
-        possibleHandCombinations = combinationFunction(knownDeck.size(),numberOfUnknownCards);
-    }
-
     int gladosHaveSuperiorHand = 0;
     int gladosHaveInferiorHand = 0;
     int equalHand = 0;
     int possibleHandValue = 0;
     int sumOfUnknown = 0;
+    double winProb;
     vector<int> combinationVector;
     vector<vector<int>> allCombinations = get_combinations(knownDeck, numberOfUnknownCards);
 
-
-    double winProb;
-
-    for(int k=0; k<possibleHandCombinations; k++)
+    if(gladosHandValue>21)
     {
-        combinationVector = allCombinations[k];
-        for(int i=0; i<combinationVector.size(); i++)
+        for(int k=0; k<possibleHandCombinations; k++)
         {
-            sumOfUnknown = sumOfUnknown + combinationVector[i];
-        }
-        possibleHandValue = openCardValue + sumOfUnknown;
+            combinationVector = allCombinations[k];
+            for(int i=0; i<combinationVector.size(); i++)
+            {
+                sumOfUnknown = sumOfUnknown + combinationVector[i];
+            }
+            possibleHandValue = openCardValue + sumOfUnknown;
 
-        if(possibleHandValue>21 || possibleHandValue<gladosHandValue)
-        {
-            gladosHaveSuperiorHand++;
+            if(possibleHandValue>21)
+            {
+                gladosHaveSuperiorHand++;
+            }
+            else
+            {
+                gladosHaveInferiorHand++;
+            }
+
+            sumOfUnknown = 0;
         }
-        else if(possibleHandValue>gladosHandValue)
+    }
+    else
+    {
+        for(int k=0; k<possibleHandCombinations; k++)
         {
-            gladosHaveInferiorHand++;
+            combinationVector = allCombinations[k];
+            for(int i=0; i<combinationVector.size(); i++)
+            {
+                sumOfUnknown = sumOfUnknown + combinationVector[i];
+            }
+            possibleHandValue = openCardValue + sumOfUnknown;
+
+            if(possibleHandValue>21 || possibleHandValue<gladosHandValue)
+            {
+                gladosHaveSuperiorHand++;
+            }
+            else if(possibleHandValue>gladosHandValue)
+            {
+                gladosHaveInferiorHand++;
+            }
+            else
+            {
+                equalHand++;
+            }
+            sumOfUnknown = 0;
         }
-        else
-        {
-            equalHand++;
-        }
-        sumOfUnknown = 0;
     }
 
     possibleHandCombinations = gladosHaveSuperiorHand + gladosHaveInferiorHand + equalHand;
@@ -464,9 +484,8 @@ double expectedValueFunction(vector<int> knownDeck, int gladosHandValue, int pla
 
 }
 
-void drawCardFunction(vector<int>& knownDeck, vector<int>& actualDeck, bool isForGlados, Player &SubjectName)
+void drawCardFunction(mt19937& rng, vector<int>& knownDeck, vector<int>& actualDeck, bool isForGlados, Player &SubjectName)
 {
-    mt19937 mt(time(nullptr));
     int randomNumber;
     int randomCard;
     // Draw a card
@@ -508,19 +527,16 @@ vector<int> deckCreatorFunction(vector<int> vector)
     return vector;
 }
 
-void dealCardsFunction(vector<int> &knownDeck, vector<int> &actualDeck, Player &SubjectGlados, Player &SubjectHuman)
+void dealCardsFunction(mt19937& rng, vector<int> &knownDeck, vector<int> &actualDeck, Player &SubjectGlados, Player &SubjectHuman)
 {
-
     int randomNumber;
     int handValue = 0;
     int randomCard;
-    mt19937 mt(time(nullptr));
 
     for(int i=1; i<=2; i++)
     {
         randomNumber = mt()%actualDeck.size();
         randomCard = actualDeck[randomNumber];
-
 
         //get them out
         actualDeck = eraseFunction(randomCard,actualDeck);
@@ -532,7 +548,6 @@ void dealCardsFunction(vector<int> &knownDeck, vector<int> &actualDeck, Player &
     {
         randomNumber = mt()%actualDeck.size();
         randomCard = actualDeck[randomNumber];
-
 
         //get them out
         actualDeck = eraseFunction(randomCard,actualDeck);
@@ -590,17 +605,42 @@ void printDeckFunction(vector<int> desiredVector)
     cout<<endl;
 }
 
+int gladosBetRaiseFunction(mt19937& rng, double winProb, int maxBetRaise)
+{
+    int randomNumber;
+    randomNumber = mt()%100;
+
+
+    //should I add a bluff option? I don't know
+    if(winProb<0.66)
+    {
+    return 0;
+    }
+
+    else
+    {
+        if(randomNumber<winProb*100)
+        {
+            randomNumber = (rng() % maxBetRaise) + 1;
+            return randomNumber;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+}
+
 
 int main()
 {
-    mt19937 mt(time(nullptr));
+    mt19937 mt_rng(time(nullptr));
 
-    int startingMoney,blindBet,randomNumber,maxBetRaise;
-    int gladosHaveSuperiorHand,gladosHaveInferiorHand,equalHand,playerOpenCardValue,busted,notBusted,moneyInThePot,betRaise = 0;
+    int startingMoney,blindBet,maxBetRaise;
+    int betRaise,sumOfBet, gladosBetRaiseSum = 0;
     int playerSatistactionValue = 18;
-    int raiseBetAmount;
+    int gladosBetRaise;
     double winProb,riskOfDrawingCard;
-    double winProbIfPlayerKeepsDrawing;
     double expectedValue;
     bool humanNewCard = false;
 
@@ -611,47 +651,54 @@ int main()
     vector<int> playersUnknownCards;
     vector<handNode> handNodeVector;
     bool gladosStands;
+    bool messageDisplayed;
 
-    startingMoney = 60;
+    startingMoney = 100;
     blindBet = 10;
+    maxBetRaise = 40;
 
     actualDeck = deckCreatorFunction(actualDeck);
-    deckKnownToGlados = deckCreatorFunction(deckKnownToGlados);
+    deckKnownToGlados = actualDeck;
 
     //create the players
     Player Glados(startingMoney);
     Player Human(startingMoney);
 
+
     while(actualDeck.size()>4 && Glados.getWallet()>=blindBet && Human.getWallet()>=blindBet)
     {
+        cout<<"Another round begins"<<endl;
+        cout<<"glados wallet: "<<Glados.getWallet()<<endl;
+        cout<<"human wallet: "<<Human.getWallet()<<endl;
         //deal the cards
-        dealCardsFunction(deckKnownToGlados,actualDeck,Glados,Human);
+        dealCardsFunction(mt_rng,deckKnownToGlados,actualDeck,Glados,Human);
 
         //place the blind bet, no backing now
         Glados.raiseBet(blindBet);
         Human.raiseBet(blindBet);
 
         //glados takes action
-        riskOfDrawingCard = riskOfDrawingCardFunction(deckKnownToGlados,Glados.getTotalValueOfHand());
-        winProb =  winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
-
-        winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
         expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
-
-        while(expectedValue>0)
-        {
-            drawCardFunction(deckKnownToGlados,actualDeck, true,Glados);
-            cout<<"Glados draws a card"<<endl;
-            expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
-        }
 
         cout<<"Open card of Glados is: "<<Glados.getPlayerOpenCardValue()<<endl;
         cout<<"Your cards are: "<<endl;
         printDeckFunction(Human.getCards());
 
+        while(expectedValue>0)
+        {
+            drawCardFunction(mt_rng, deckKnownToGlados,actualDeck, true,Glados);
+            cout<<"Glados draws a card"<<endl;
+            expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
+        }
+
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
+        cout<<"win prob intial: "<<winProb<<endl;
+        cout<<"glados cards: "<<endl;
+        printDeckFunction(Glados.getCards());
 
         gladosStands = gladosStandFunction(winProb);
+
+        sumOfBet = 0;
 
         //human can't draw a card yet
         humanNewCard = false;
@@ -661,16 +708,20 @@ int main()
         {
             cout<<"Type draw to draw a card. Type raise to raise bet. Type stand if you want to do neither."<<endl;
             cout<<"Or if you realized that resistance is futile, type retreat to... well, retreat?"<<endl;
+            cout<<"Your total hand value: "<<Human.getTotalValueOfHand()<<endl;
             cin>>question;
 
             if(question=="draw")
             {
-                drawCardFunction(deckKnownToGlados,actualDeck,false,Human);
+                drawCardFunction(mt_rng,deckKnownToGlados,actualDeck,false,Human);
                 humanNewCard = true;
+                cout<<"calculating..."<<endl;
+                winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                 printDeckFunction(Human.getCards());
             }
             else if(question=="raise")
             {
+
                 while(true)
                 {
                     cout<<"How much?"<<endl;
@@ -683,12 +734,17 @@ int main()
                     {
                         cout<<"Hold your horses, you don't have that much money. Most you can raise is: "<<Human.getWallet()<<endl;
                     }
+                    else if(sumOfBet + betRaise>maxBetRaise)
+                    {
+                        cout<<"Hold your horses, you went below the allowed bet raise for this round. Most you can raise is: "<<maxBetRaise-sumOfBet<<endl;
+                    }
                     else
                     {
                         break;
                     }
                 }
 
+                sumOfBet = sumOfBet + betRaise;
                 Human.raiseBet(betRaise);
 
                 //will glados see?
@@ -697,25 +753,29 @@ int main()
                 //update the winProb if player picked a new card
                 if(humanNewCard)
                 {
-                    winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
+                    cout<<"glados stand updated"<<endl;
                     gladosStands = gladosStandFunction(winProb);
                     humanNewCard = false;
                 }
 
-                    if(gladosStands)
-                    {
-                        cout<<"Glados matches your bet"<<endl;
-                        Glados.raiseBet(betRaise);
-                        cout<<endl;
-                    }
-                    else
-                    {
-                        cout<<"Glados retreats, Human won"<<endl;
-                        Human.victory(Glados.getPotMoney());
-                        Glados.defeat();
-                        cout<<endl;
-                        break;
-                    }
+                if(gladosStands)
+                {
+                    cout<<"Glados matches your bet"<<endl;
+                    Glados.raiseBet(betRaise);
+                    cout<<endl;
+                }
+                else
+                {
+                    cout<<"Glados retreats, Human won"<<endl;
+                    cout<<"Glados hand: "<<endl;
+                    printDeckFunction(Glados.getCards());
+                    cout<<endl;
+                    deckKnownToGlados = actualDeck;
+                    Human.victory(Glados.getPotMoney());
+                    Glados.defeat();
+                    cout<<endl;
+                    break;
+                }
 
             }
             else if(question=="stand")
@@ -726,6 +786,7 @@ int main()
                     cout<<"Glados hand: "<<endl;
                     printDeckFunction(Glados.getCards());
                     cout<<endl;
+                    deckKnownToGlados = actualDeck;
                     Glados.draw();
                     Human.draw();
                     cout<<endl;
@@ -738,6 +799,7 @@ int main()
                     cout<<"Glados hand: "<<endl;
                     printDeckFunction(Glados.getCards());
                     cout<<endl;
+                    deckKnownToGlados = actualDeck;
                     Glados.victory(Human.getPotMoney());
                     Human.defeat();
                     cout<<endl;
@@ -750,6 +812,7 @@ int main()
                     cout<<"Glados hand: "<<endl;
                     printDeckFunction(Glados.getCards());
                     cout<<endl;
+                    deckKnownToGlados = actualDeck;
                     Human.victory(Glados.getPotMoney());
                     Glados.defeat();
                     cout<<endl;
@@ -758,25 +821,27 @@ int main()
             }
             else
             {
-
                 cout<<"Glados won"<<endl;
+                cout<<"Glados hand: "<<endl;
+                printDeckFunction(Glados.getCards());
+                cout<<endl;
+                deckKnownToGlados = actualDeck;
                 Glados.victory(Human.getPotMoney());
                 Human.defeat();
                 cout<<endl;
                 break;
             }
-
         }
-
-        cout<<endl;
-        cout<<"glados wallet: "<<Glados.getWallet()<<endl;
-        cout<<"human wallet: "<<Human.getWallet()<<endl;
-        cout<<endl;
-
     }
 
-
-
+    if(Glados.getWallet()>Human.getWallet())
+    {
+        cout<<"Glados won the match"<<endl;
+    }
+    else
+    {
+        cout<<"Human won the match"<<endl;
+    }
 
 
 
