@@ -249,6 +249,16 @@ public:
         return getTotalNumberOfCards()-1;
     }
 
+    Deck getUnknownDeck()
+    {
+        Deck unKnownDeck;
+        for(int i=1; i<cardsInsideHand.getNumberOfCards(); i++)
+        {
+            unKnownDeck.addCard(cardsInsideHand.getElementI(i));
+        }
+        return unKnownDeck;
+    }
+
 };
 
 class handNode
@@ -694,8 +704,17 @@ int betRaiseLimitFunction(int humanMoneyInPot, int gladosWallet, int humanWallet
     return warning;
 }
 
-void roundEndFunction(Player &SubjectGlados, Player &SubjectHuman, bool gladosWon, bool draw)
+void roundEndFunction(Player &SubjectGlados, Player &SubjectHuman, bool gladosWon, bool draw, Deck &knownDeck)
 {
+    Deck unKnownDeck;
+    unKnownDeck = SubjectHuman.getUnknownDeck();
+
+    for(int i=0; i<unKnownDeck.getNumberOfCards(); i++)
+    {
+        knownDeck.removeCard(unKnownDeck.getElementI(i));
+    }
+
+
     if(gladosWon && !draw)
     {
         cout<<"Glados won. It's hand was: "<<endl;
@@ -742,7 +761,7 @@ int main()
 
     startingMoney = 100;
     blindBet = 10;
-    maxBetRaiseForPlayer = 50;
+    maxBetRaiseForPlayer = 60;
 
     //create the players
     Player Glados(startingMoney);
@@ -759,6 +778,7 @@ int main()
         gladosBetRaise = 0;
         cout<<"Your wallet: "<<Human.getWallet()<<endl;
         cout<<"Glados's wallet: "<<Glados.getWallet()<<endl;
+        cout<<endl;
 
         //check if deck is depleted
         //4, because this is a 2 player game and 2 cards are dealt for each player. hence 2*2 is...4
@@ -777,7 +797,9 @@ int main()
         Glados.putMoneyInPot(blindBet);
         Human.putMoneyInPot(blindBet);
 
+        cout<<"Your cards are: "<<endl;
         Human.printSubjectCards();
+        cout<<endl;
 
         //glados shall draw a card as long as it's logical to do so
         expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
@@ -792,6 +814,12 @@ int main()
         gladosStands = gladosStandFunction(winProb);
         limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
+
+        cout<<"initial win prob: "<<winProb<<endl;
+        cout<<"glados cards: "<<endl;
+        Glados.printSubjectCards();
+        cout<<"deck known to glados:"<<endl;
+        deckKnownToGlados.printCards();
 
         gladosBetRaise = gladosBetRaiseFunction(mt_rng,humanTreeWinProb,limit,Glados,Human.getWallet());
 
@@ -856,7 +884,9 @@ int main()
                 else
                 {
                     cout<<"Glados retreats"<<endl;
-                    roundEndFunction(Glados,Human, false, false);
+                    roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
+                    deckKnownToGlados.getCards()=actualDeck.getCards();
+                    deckKnownToGlados.printCards();
                     break;
                 }
             }
@@ -865,23 +895,27 @@ int main()
                 Human.putMoneyInPot(gladosBetRaise);
                 if(Glados.getPlayerGameValue()==Human.getPlayerGameValue())
                 {
-                    roundEndFunction(Glados,Human,false, true);
+                    roundEndFunction(Glados,Human,false, true,deckKnownToGlados);
+                    deckKnownToGlados.getCards()=actualDeck.getCards();
                     break;
                 }
                 else if(Glados.getPlayerGameValue()>Human.getPlayerGameValue())
                 {
-                    roundEndFunction(Glados,Human,true,false);
+                    roundEndFunction(Glados,Human,true,false,deckKnownToGlados);
+                    deckKnownToGlados.getCards()=actualDeck.getCards();
                     break;
                 }
                 else
                 {
-                    roundEndFunction(Glados,Human,false,false);
+                    roundEndFunction(Glados,Human,false,false,deckKnownToGlados);
+                    deckKnownToGlados.getCards()=actualDeck.getCards();
                     break;
                 }
             }
             else
             {
-                roundEndFunction(Glados,Human, true, false);
+                roundEndFunction(Glados,Human, true, false,deckKnownToGlados);
+                deckKnownToGlados.getCards()=actualDeck.getCards();
                 break;
             }
         }
