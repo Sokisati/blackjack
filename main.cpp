@@ -829,14 +829,6 @@ int main()
         gladosStands = gladosStandFunction(winProb);
         limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
-
-        cout<<"initial win prob: "<<winProb<<endl;
-        cout<<"glados cards: "<<endl;
-        Glados.printSubjectCards();
-        cout<<"htwp: "<<humanTreeWinProb<<endl;
-        cout<<"deck known to glados:"<<endl;
-        deckKnownToGlados.printCards();
-
         gladosBetRaise = gladosBetRaiseFunction(mt_rng,humanTreeWinProb,limit,Glados,Human.getWallet());
 
         moneyInPot = 2*blindBet;
