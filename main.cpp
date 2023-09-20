@@ -298,6 +298,19 @@ public:
     }
 };
 
+vector<int> eraseFunction(int number, vector<int> vector)
+{
+    for(int i=0; i<vector.size(); i++)
+    {
+        if(vector[i]==number)
+        {
+            vector.erase(vector.begin()+i);
+            break;
+        }
+    }
+    return vector;
+}
+
 vector<handNode> humanTreeInitialFunction(Deck knownDeck, int playerOpenCardValue, vector<handNode> handNodeVector)
 {
     vector<int> tempVector;
@@ -315,9 +328,11 @@ vector<handNode> humanTreeInitialFunction(Deck knownDeck, int playerOpenCardValu
 
 void humanTreeRecursiveFunction(vector<handNode> &handNodeVector, Deck knownDeck, int lastRunLastNodeID, int lastRunFirstNodeID, int limit)
 {
-    vector<int> originalVector;
-    originalVector = knownDeck.getCards();
     vector<int> tempVector;
+    vector<int> originalVector;
+    vector<int> knownDeckCopy;
+    knownDeckCopy = knownDeck.getCards();
+    originalVector = knownDeckCopy;
     int nodesCreatedThisRun = 0;
     int firstNodeID;
     int lastNodeID;
@@ -326,20 +341,20 @@ void humanTreeRecursiveFunction(vector<handNode> &handNodeVector, Deck knownDeck
     {
         if(handNodeVector[i].value<limit)
         {
-            knownDeck.getCards() = originalVector;
+            knownDeckCopy = originalVector;
 
             // Remove the cards that CAN'T be drawn, starting from the last element
             for (auto it = handNodeVector[i].cardVector.begin() + 1; it != handNodeVector[i].cardVector.end(); ++it)
             {
                 int cardThatWillBeRemoved = *it; // Get the current card (excluding the open card value)
-                knownDeck.removeCard(cardThatWillBeRemoved);
+                knownDeckCopy = eraseFunction(cardThatWillBeRemoved,knownDeckCopy);
             }
 
-            for(int create=0; create<knownDeck.getNumberOfCards(); create++)
+            for(int create=0; create<knownDeckCopy.size(); create++)
             {
                 tempVector = handNodeVector[i].cardVector;
-                tempVector.push_back(knownDeck.getElementI(create));
-                handNodeVector.emplace_back(knownDeck.getNumberOfCards(),handNodeVector[i].selfProbability,tempVector);
+                tempVector.push_back(knownDeckCopy[create]);
+                handNodeVector.emplace_back(knownDeckCopy.size(),handNodeVector[i].selfProbability,tempVector);
                 tempVector.clear();
                 if(nodesCreatedThisRun==0 && create==0)
                 {
@@ -347,10 +362,10 @@ void humanTreeRecursiveFunction(vector<handNode> &handNodeVector, Deck knownDeck
                 }
                 nodesCreatedThisRun++;
             }
-            knownDeck.getCards() = originalVector;
+            knownDeckCopy = originalVector;
         }
     }
-    knownDeck.getCards() = originalVector;
+    knownDeckCopy = originalVector;
     lastNodeID = handNodeVector.size()-1;
 
     if(nodesCreatedThisRun!=0)
@@ -818,6 +833,7 @@ int main()
         cout<<"initial win prob: "<<winProb<<endl;
         cout<<"glados cards: "<<endl;
         Glados.printSubjectCards();
+        cout<<"htwp: "<<humanTreeWinProb<<endl;
         cout<<"deck known to glados:"<<endl;
         deckKnownToGlados.printCards();
 
