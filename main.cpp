@@ -116,6 +116,7 @@ public:
 
     void createLargeDeck()
     {
+        this->cards.clear();
         //ordinary numbers
         for(int k=2; k<=10; k++)
         {
@@ -465,7 +466,7 @@ int combinationFunction(int samplePool, int selection)
     return result;
 }
 
-void generate_combinations(Deck knownDeck, int cardDraw, int start_index, vector<int>& current_combination, vector<vector<int>>& combinations) {
+void generateCombinations(Deck knownDeck, int cardDraw, int start_index, vector<int>& current_combination, vector<vector<int>>& combinations) {
     if (current_combination.size() == cardDraw) {
         combinations.push_back(current_combination);
         return;
@@ -473,15 +474,15 @@ void generate_combinations(Deck knownDeck, int cardDraw, int start_index, vector
 
     for (int i = start_index; i < knownDeck.getNumberOfCards(); ++i) {
         current_combination.push_back(knownDeck.getElementI(i));
-        generate_combinations(knownDeck, cardDraw, i + 1, current_combination, combinations);
+        generateCombinations(knownDeck, cardDraw, i + 1, current_combination, combinations);
         current_combination.pop_back();
     }
 }
 
-vector<vector<int>> get_combinations(Deck knownDeck, int cardDraw) {
+vector<vector<int>> getCombinations(Deck knownDeck, int cardDraw) {
     vector<int> current_combination;
     vector<vector<int>> combinations;
-    generate_combinations(knownDeck, cardDraw, 0, current_combination, combinations);
+    generateCombinations(knownDeck, cardDraw, 0, current_combination, combinations);
     return combinations;
 }
 
@@ -496,7 +497,7 @@ double winProbabilityFunction(Deck knownDeck, int openCardValue,int gladosHandVa
     int sumOfUnknown = 0;
     double winProb;
     vector<int> combinationVector;
-    vector<vector<int>> allCombinations = get_combinations(knownDeck, numberOfUnknownCards);
+    vector<vector<int>> allCombinations = getCombinations(knownDeck, numberOfUnknownCards);
 
     if(gladosHandValue>21)
     {
@@ -649,7 +650,7 @@ void dealCardsFunction(mt19937& rng, Deck &knownDeck, Deck &actualDeck, Player &
 
 }
 
-bool gladosStandFunction(float winProb)
+bool gladosStandFunction(double winProb)
 {
     mt19937 mt(time(nullptr));
     int randomNumber;
@@ -774,7 +775,7 @@ int main()
     bool messageDisplayed;
 
     startingMoney = 100;
-    blindBet = 10;
+    blindBet = 20;
     maxBetRaiseForPlayer = 60;
 
     //create the players
@@ -860,11 +861,27 @@ int main()
         {
             SetConsoleTextAttribute(h,15);
             cout<<"Your total value of hand is: "<<Human.getTotalValueOfHand()<<endl;
+            if(Human.getTotalNumberOfCards()==5 && Human.getTotalValueOfHand()<=21)
+            {
+                SetConsoleTextAttribute(h,10);
+                cout<<"5 card game! Your hand is considered 21 now"<<endl;
+                SetConsoleTextAttribute(h,15);
+            }
             cout<<"Draw, raise, stand or retreat"<<endl;
             cin>>question;
 
             if(question=="draw")
             {
+                if(Human.getTotalNumberOfCards()==5)
+                {
+                    cout<<"You can't draw anymore!"<<endl;
+                    continue;
+                }
+                if(actualDeck.getNumberOfCards()==0)
+                {
+                    cout<<"Deck is depleted, you can't draw anymore for this round"<<endl;
+                    continue;
+                }
                 humanNewCard = true;
                 Human.drawCard(false,deckKnownToGlados,actualDeck);
                 //update win probability
@@ -872,7 +889,7 @@ int main()
             }
             else if(question=="raise")
             {
-                limit = betRaiseLimitFunction(moneyInPot,Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
+                limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
                 if(limit<=0)
                 {
                     cout<<"You can't raise right now"<<endl;
