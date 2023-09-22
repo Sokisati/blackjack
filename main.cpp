@@ -686,27 +686,54 @@ bool gladosStandFunction(double winProb)
     return gladosStands;
 }
 
-int gladosBetRaiseFunction(mt19937& rng, double treeWinProb, int limit, Player &SubjectGlados, int humanWallet)
+double humanBustedProbabilityFunction(Player SubjectHuman, Deck knownDeck, int numberOfUnknownCards)
 {
-    int randomNumber;
-    randomNumber = mt()%100;
+    int possibleHandCombinations = combinationFunction(knownDeck.getNumberOfCards(),numberOfUnknownCards);
+    int sumOfUnknown = 0;
+    int busted = 0;
+    int notBusted = 0;
+    int possibleHandValue;
+    double bustedProb;
+    vector<int> combinationVector;
+    vector<vector<int>> allCombinations = getCombinations(knownDeck, numberOfUnknownCards);
 
+        for(int k=0; k<possibleHandCombinations; k++)
+        {
+            combinationVector = allCombinations[k];
+            for(int i=0; i<combinationVector.size(); i++)
+            {
+                sumOfUnknown = sumOfUnknown + combinationVector[i];
+            }
+            possibleHandValue = SubjectHuman.getPlayerOpenCardValue() + sumOfUnknown;
 
+            if(possibleHandValue>21)
+            {
+                busted++;
+            }
+            else
+            {
+                notBusted++;
+            }
+            sumOfUnknown = 0;
+        }
+        bustedProb = static_cast<double>(busted)/static_cast<double>(busted+notBusted);
+
+        return bustedProb;
+}
+
+int gladosBetRaiseFunction(double winProb, int limit)
+{
+    int betRaise;
     //should I add a bluff option? I don't know
-    if(treeWinProb<0.75)
+    if(winProb<0.75)
     {
-    return 0;
+    betRaise = 0;
     }
     else
     {
-        if(limit>humanWallet)
-        {
-            limit = humanWallet;
-        }
-        randomNumber = (mt() % limit) + 1;
-        SubjectGlados.putMoneyInPot(randomNumber);
-        return randomNumber;
+        betRaise = limit*winProb;
     }
+    return betRaise;
 }
 
 int betRaiseLimitFunction(int humanMoneyInPot, int gladosWallet, int humanWallet, int maxBetRaise)
@@ -761,18 +788,21 @@ int main()
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 
     int startingMoney,blindBet,maxBetRaiseForPlayer;
-    int betRaise,moneyInPot, gladosBetRaise = 0;
+    int betRaise,moneyInPot, gladosInitialBetRaise,gladosExtraBetRaise = 0;
     int playerSatistactionValue = 18;
     int limit;
     double winProb,riskOfDrawingCard;
     double expectedValue;
     double humanTreeWinProb;
-    bool humanNewCard = false;
+    double bustedProb;
+    bool humanNewCard;
 
     string question;
     vector<handNode> handNodeVector;
     bool gladosStands;
     bool messageDisplayed;
+    bool matchInitialRaise;
+    bool matchExtraRaise;
 
     startingMoney = 100;
     blindBet = 20;
@@ -791,7 +821,12 @@ int main()
     while(Glados.getWallet()>blindBet && Human.getWallet()>blindBet)
     {
         SetConsoleTextAttribute(h,15);
-        gladosBetRaise = 0;
+        gladosInitialBetRaise = 0;
+        gladosExtraBetRaise = 0;
+        humanNewCard = false;
+        matchInitialRaise = false;
+        matchExtraRaise = false;
+        messageDisplayed = false;
         cout<<"Your wallet: "<<Human.getWallet()<<endl;
         cout<<"Glados's wallet: "<<Glados.getWallet()<<endl;
         cout<<endl;
@@ -834,8 +869,7 @@ int main()
         gladosStands = gladosStandFunction(winProb);
         limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
-        gladosBetRaise = gladosBetRaiseFunction(mt_rng,humanTreeWinProb,limit,Glados,Human.getWallet());
-
+        gladosInitialBetRaise = gladosBetRaiseFunction(humanTreeWinProb,limit);
         moneyInPot = 2*blindBet;
 
         if(Glados.getTotalNumberOfCards()==2)
@@ -844,7 +878,7 @@ int main()
             cout<<"Glados doesn't draw additional card this round"<<endl;
         }
 
-        if(gladosBetRaise==0)
+        if(gladosInitialBetRaise==0)
         {
             SetConsoleTextAttribute(h,8);
             cout<<"Glados doesn't increase the bet this round"<<endl;
@@ -852,8 +886,8 @@ int main()
         else
         {
             SetConsoleTextAttribute(h,11);
-            Glados.putMoneyInPot(gladosBetRaise);
-            cout<<"Glados increases bet by: "<<gladosBetRaise<<endl;
+            Glados.putMoneyInPot(gladosInitialBetRaise);
+            cout<<"Glados increases bet by: "<<gladosInitialBetRaise<<endl;
         }
 
         //finally, player gets to take action
@@ -877,7 +911,7 @@ int main()
                     cout<<"You can't draw anymore!"<<endl;
                     continue;
                 }
-                if(actualDeck.getNumberOfCards()==0)
+                else if(actualDeck.getNumberOfCards()==0)
                 {
                     cout<<"Deck is depleted, you can't draw anymore for this round"<<endl;
                     continue;
@@ -886,9 +920,31 @@ int main()
                 Human.drawCard(false,deckKnownToGlados,actualDeck);
                 //update win probability
                 winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
+                limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
+                bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
+                gladosExtraBetRaise = gladosBetRaiseFunction(bustedProb,limit);
+                Glados.putMoneyInPot(gladosExtraBetRaise);
+
+                //if winProb is off the roof, raise the bet to force the human to retreat or think twice when standing
+                if(gladosInitialBetRaise==0 && gladosExtraBetRaise!=0 && !messageDisplayed)
+                {
+                    cout<<"Glados raises bet by: "<<gladosExtraBetRaise<<endl;
+                    messageDisplayed = true;
+                    matchExtraRaise = false;
+                }
             }
             else if(question=="raise")
             {
+                if(!matchInitialRaise)
+                {
+                    Human.putMoneyInPot(gladosInitialBetRaise);
+                    matchInitialRaise = true;
+                }
+                else if(!matchExtraRaise)
+                {
+                    Human.putMoneyInPot(gladosExtraBetRaise);
+                    matchExtraRaise=true;
+                }
                 limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
                 if(limit<=0)
                 {
@@ -929,7 +985,13 @@ int main()
             }
             else if(question=="stand")
             {
-                Human.putMoneyInPot(gladosBetRaise);
+                Human.putMoneyInPot(gladosInitialBetRaise);
+
+                if(!matchExtraRaise)
+                {
+                    Human.putMoneyInPot(gladosExtraBetRaise);
+                    matchExtraRaise=true;
+                }
                 if(Glados.getPlayerGameValue()==Human.getPlayerGameValue())
                 {
                     SetConsoleTextAttribute(h,15);
