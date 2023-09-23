@@ -659,8 +659,6 @@ bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int be
     double compensation = static_cast<double>(blindBet)/(startingMoney);
     toleranceLimit = betRange*(winProb+compensation);
 
-    cout<<"tolerance limit: "<<toleranceLimit<<endl;
-
     if(betRaiseSum>toleranceLimit)
     {
         gladosStands = false;
@@ -855,7 +853,6 @@ int main()
 
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
         gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Glados.getPotMoney()-blindBet);
-        cout<<"glados stand: "<<gladosStands<<endl;
         limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
         gladosInitialBetRaise = gladosBetRaiseFunction(humanTreeWinProb,limit);
