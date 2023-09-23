@@ -650,39 +650,26 @@ void dealCardsFunction(mt19937& rng, Deck &knownDeck, Deck &actualDeck, Player &
 
 }
 
-bool gladosStandFunction(double winProb)
+bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int betRange, int betRaiseSum)
 {
-    mt19937 mt(time(nullptr));
-    int randomNumber;
+    int toleranceLimit;
     bool gladosStands;
 
-    randomNumber = mt()%100;
+    //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep retreating, waiting for the best moment
+    double compensation = static_cast<double>(blindBet)/(startingMoney/3);
+    toleranceLimit = betRange*(winProb+compensation);
 
-    if(winProb>=0.75)
-    {
-        //yes
-        gladosStands=true;
-    }
-    else if(winProb<0.75 && winProb>=0.5)
-    {
-        //maybe
+    cout<<"tolerance limit: "<<toleranceLimit<<endl;
 
-        if(randomNumber<winProb*100)
-        {
-            //yeah
-            gladosStands=true;
-        }
-        else
-        {
-            //nah
-            gladosStands=false;
-        }
+    if(betRaiseSum>toleranceLimit)
+    {
+        gladosStands = false;
     }
     else
     {
-        //no
-        gladosStands=false;
+        gladosStands = true;
     }
+
     return gladosStands;
 }
 
@@ -804,9 +791,9 @@ int main()
     bool matchInitialRaise;
     bool matchExtraRaise;
 
-    startingMoney = 100;
-    blindBet = 20;
-    maxBetRaiseForPlayer = 60;
+    startingMoney = 60;
+    blindBet = 10;
+    maxBetRaiseForPlayer = 15;
 
     //create the players
     Player Glados(startingMoney);
@@ -866,7 +853,7 @@ int main()
         }
 
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
-        gladosStands = gladosStandFunction(winProb);
+        gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,maxBetRaiseForPlayer-blindBet,blindBet);
         limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
         gladosInitialBetRaise = gladosBetRaiseFunction(humanTreeWinProb,limit);
@@ -928,6 +915,7 @@ int main()
                 //if winProb is off the roof, raise the bet to force the human to retreat or think twice when standing
                 if(gladosInitialBetRaise==0 && gladosExtraBetRaise!=0 && !messageDisplayed)
                 {
+                    SetConsoleTextAttribute(h,11);
                     cout<<"Glados raises bet by: "<<gladosExtraBetRaise<<endl;
                     messageDisplayed = true;
                     matchExtraRaise = false;
@@ -966,7 +954,8 @@ int main()
                 //update if player drew a new card
                 if(humanNewCard)
                 {
-                    gladosStands = gladosStandFunction(winProb);
+                    cout<<"stance updated"<<endl;
+                    gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,maxBetRaiseForPlayer-blindBet,Human.getPotMoney());
                     humanNewCard = false;
                 }
 
