@@ -656,7 +656,7 @@ bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int be
     bool gladosStands;
 
     //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep retreating, waiting for the best moment
-    double compensation = static_cast<double>(blindBet)/(startingMoney/3);
+    double compensation = static_cast<double>(blindBet)/(startingMoney);
     toleranceLimit = betRange*(winProb+compensation);
 
     cout<<"tolerance limit: "<<toleranceLimit<<endl;
@@ -723,11 +723,11 @@ int gladosBetRaiseFunction(double winProb, int limit)
     return betRaise;
 }
 
-int betRaiseLimitFunction(int humanMoneyInPot, int gladosWallet, int humanWallet, int maxBetRaise)
+int betRaiseLimitFunction(int subjectMoneyInPot, int gladosWallet, int humanWallet, int maxBetRaise)
 {
     int warning;
     int raiseLimit;
-    raiseLimit = maxBetRaise - humanMoneyInPot;
+    raiseLimit = maxBetRaise - subjectMoneyInPot;
     warning = min({gladosWallet,humanWallet,raiseLimit});
     return warning;
 }
@@ -777,7 +777,7 @@ int main()
     int startingMoney,blindBet,maxBetRaiseForPlayer;
     int betRaise,moneyInPot, gladosInitialBetRaise,gladosExtraBetRaise = 0;
     int playerSatistactionValue = 18;
-    int limit;
+    int limit,betRange;
     double winProb,riskOfDrawingCard;
     double expectedValue;
     double humanTreeWinProb;
@@ -791,9 +791,10 @@ int main()
     bool matchInitialRaise;
     bool matchExtraRaise;
 
-    startingMoney = 60;
-    blindBet = 10;
-    maxBetRaiseForPlayer = 15;
+    startingMoney = 100;
+    blindBet = 15;
+    maxBetRaiseForPlayer = 35;
+    betRange = maxBetRaiseForPlayer - blindBet;
 
     //create the players
     Player Glados(startingMoney);
@@ -853,8 +854,9 @@ int main()
         }
 
         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
-        gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,maxBetRaiseForPlayer-blindBet,blindBet);
-        limit = betRaiseLimitFunction(Human.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
+        gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Glados.getPotMoney()-blindBet);
+        cout<<"glados stand: "<<gladosStands<<endl;
+        limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
         gladosInitialBetRaise = gladosBetRaiseFunction(humanTreeWinProb,limit);
         moneyInPot = 2*blindBet;
@@ -908,6 +910,8 @@ int main()
                 //update win probability
                 winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                 limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
+
+                //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
                 gladosExtraBetRaise = gladosBetRaiseFunction(bustedProb,limit);
                 Glados.putMoneyInPot(gladosExtraBetRaise);
@@ -937,50 +941,46 @@ int main()
                 if(limit<=0)
                 {
                     cout<<"You can't raise right now"<<endl;
-                    break;
-                }
-                cout<<"Most you can raise right now is: "<<limit<<endl;
-                cout<<"How much you want to raise?"<<endl;
-                cin>>betRaise;
-                if(betRaise>limit)
-                {
-                    cout<<"You went above and beyond (even though you were warned), try again"<<endl;
                     continue;
-                }
-
-                Human.putMoneyInPot(betRaise);
-
-                //will glados match this raise?
-                //update if player drew a new card
-                if(humanNewCard)
-                {
-                    cout<<"stance updated"<<endl;
-                    gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,maxBetRaiseForPlayer-blindBet,Human.getPotMoney());
-                    humanNewCard = false;
-                }
-
-                if(gladosStands)
-                {
-                    cout<<"Glados matches your bet"<<endl;
-                    Glados.putMoneyInPot(betRaise);
                 }
                 else
                 {
-                    SetConsoleTextAttribute(h,2);
-                    cout<<"Glados retreats"<<endl;
-                    roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
-                    break;
+                    cout<<"Most you can raise right now is: "<<limit<<endl;
+                    cout<<"How much you want to raise?"<<endl;
+                    cin>>betRaise;
+                    if(betRaise>limit)
+                    {
+                        cout<<"You went above and beyond (even though you were warned), try again"<<endl;
+                        continue;
+                    }
+
+                    Human.putMoneyInPot(betRaise);
+
+                    //will glados match this raise?
+                    //update if player drew a new card
+                    cout<<"stance updated"<<endl;
+                    gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
+
+
+                    if(gladosStands)
+                    {
+                        cout<<"Glados matches your bet"<<endl;
+                        Glados.putMoneyInPot(betRaise);
+                    }
+                    else
+                    {
+                        SetConsoleTextAttribute(h,2);
+                        cout<<"Glados retreats"<<endl;
+                        roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
+                        break;
+                    }
+
                 }
+
             }
             else if(question=="stand")
             {
-                Human.putMoneyInPot(gladosInitialBetRaise);
-
-                if(!matchExtraRaise)
-                {
-                    Human.putMoneyInPot(gladosExtraBetRaise);
-                    matchExtraRaise=true;
-                }
+                Human.putMoneyInPot(Glados.getPotMoney()-blindBet);
                 if(Glados.getPlayerGameValue()==Human.getPlayerGameValue())
                 {
                     SetConsoleTextAttribute(h,15);
