@@ -652,21 +652,83 @@ void dealCardsFunction(mt19937& rng, Deck &knownDeck, Deck &actualDeck, Player &
 
 bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int betRange, int betRaiseSum)
 {
-    int toleranceLimit;
+    int analogToleranceLimit;
+    int digitalToleranceLimit;
     bool gladosStands;
+    int toleranceBarDistance;
+    int toleranceBarDivide;
+    vector<int> toleranceBar;
+
+    toleranceBarDivide = 3;
 
     //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep retreating, waiting for the best moment
+    //I mean, with the discrete tolerance states, is it really needed? I really don't know
     double compensation = static_cast<double>(blindBet)/(startingMoney);
-    toleranceLimit = betRange*(winProb+compensation);
 
-    if(betRaiseSum>toleranceLimit)
+    analogToleranceLimit = betRange*(winProb+compensation);
+    //as toleranceBarDivide approaches infinity, betRange becomes more and more continuous
+    toleranceBarDistance = betRange/toleranceBarDivide;
+
+    for(int i=0; i<toleranceBarDivide; i++)
+    {
+        int bar = (i+1) * (toleranceBarDistance);
+        toleranceBar.push_back(bar);
+    }
+
+    if(toleranceBar.back()<=analogToleranceLimit)
+    {
+        digitalToleranceLimit = betRange;
+    }
+    else
+    {
+        //find out which sector it's between
+        for(int i=0; i<toleranceBarDivide; i++)
+        {
+            if(toleranceBar[i]>analogToleranceLimit)
+            {
+                //which is closest, above or below?
+                if (abs(toleranceBar[i] - analogToleranceLimit) <= abs(toleranceBar[i - 1] - analogToleranceLimit))
+                {
+                    digitalToleranceLimit = toleranceBar[i];
+                    break;
+                }
+                else
+                {
+                    digitalToleranceLimit = analogToleranceLimit;
+                    break;
+                }
+            }
+        }
+    }
+
+    //TODO DEBUG: CLEAR WHEN ALL IS DONE AND WELL
+    cout<<"analogTolerance = "<<analogToleranceLimit<<endl;
+    cout<<"digitalTolerance = "<<digitalToleranceLimit<<endl;
+
+    //check if the bet raise is in acceptable ground
+    if(winProb<0.5)
     {
         gladosStands = false;
     }
     else
     {
-        gladosStands = true;
+        if(winProb>=0.75)
+        {
+            gladosStands = true;
+        }
+        else
+        {
+            if(betRaiseSum>digitalToleranceLimit)
+            {
+                gladosStands = false;
+            }
+            else
+            {
+                gladosStands = true;
+            }
+        }
     }
+
 
     return gladosStands;
 }
@@ -791,7 +853,7 @@ int main()
 
     startingMoney = 100;
     blindBet = 15;
-    maxBetRaiseForPlayer = 35;
+    maxBetRaiseForPlayer = 50;
     betRange = maxBetRaiseForPlayer - blindBet;
 
     //create the players
@@ -908,6 +970,8 @@ int main()
                 winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                 limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
 
+                cout<<"win prob: "<<winProb<<endl;
+
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
                 gladosExtraBetRaise = gladosBetRaiseFunction(bustedProb,limit);
@@ -954,10 +1018,12 @@ int main()
                     Human.putMoneyInPot(betRaise);
 
                     //will glados match this raise?
-                    //update if player drew a new card
-                    cout<<"stance updated"<<endl;
-                    gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
 
+                    if(gladosInitialBetRaise==0)
+                    {
+                        cout<<"stance updated"<<endl;
+                        gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
+                    }
 
                     if(gladosStands)
                     {
