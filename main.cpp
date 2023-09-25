@@ -701,10 +701,6 @@ bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int be
         }
     }
 
-    //TODO DEBUG: CLEAR WHEN ALL IS DONE AND WELL
-    cout<<"analogTolerance = "<<analogToleranceLimit<<endl;
-    cout<<"digitalTolerance = "<<digitalToleranceLimit<<endl;
-
     //check if the bet raise is in acceptable ground
     if(winProb<0.5)
     {
@@ -969,8 +965,6 @@ int main()
                 //update win probability
                 winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                 limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
-
-                cout<<"win prob: "<<winProb<<endl;
 
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
