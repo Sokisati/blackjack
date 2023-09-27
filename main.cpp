@@ -611,8 +611,6 @@ double expectedValueFunction(Deck knownDeck, int gladosHandValue, int playerOpen
 
         updatedWinProbability = winProbabilityFunction(knownDeck,playerOpenCardValue,updatedGladosHandValue,numberOfUnknownCards);
 
-
-
         sumOfProbabilites = static_cast<double>(updatedWinProbability-pastWinProbability);
 
         instance = eachProbability * sumOfProbabilites;
@@ -659,7 +657,7 @@ bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int be
     int toleranceBarDivide;
     vector<int> toleranceBar;
 
-    toleranceBarDivide = 3;
+    toleranceBarDivide = 4;
 
     //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep retreating, waiting for the best moment
     //I mean, with the discrete tolerance states, is it really needed? I really don't know
@@ -764,13 +762,24 @@ double humanBustedProbabilityFunction(Player SubjectHuman, Deck knownDeck, int n
         return bustedProb;
 }
 
-int gladosBetRaiseFunction(double winProb, int limit)
+int gladosBetRaiseFunction(mt19937& rng, double winProb, int limit)
 {
     int betRaise;
+    int randomNumber = mt();
     //should I add a bluff option? I don't know
     if(winProb<0.75)
     {
-    betRaise = 0;
+        if(randomNumber%3==0)
+        {
+            int lowest = limit*0.75;
+            int highest = limit - lowest;
+
+            betRaise = (mt()%highest) + lowest;
+        }
+        else
+        {
+            betRaise = 0;
+        }
     }
     else
     {
@@ -838,6 +847,7 @@ int main()
     double expectedValue;
     double humanTreeWinProb;
     double bustedProb;
+    double compensationValue;
     bool humanNewCard;
 
     string question;
@@ -851,6 +861,9 @@ int main()
     blindBet = 15;
     maxBetRaiseForPlayer = 50;
     betRange = maxBetRaiseForPlayer - blindBet;
+    compensationValue = (static_cast<double>(maxBetRaiseForPlayer-blindBet)/(startingMoney))/2;
+
+    cout<<"c"<<compensationValue<<endl;
 
     //create the players
     Player Glados(startingMoney);
@@ -901,7 +914,7 @@ int main()
 
         //glados shall draw a card as long as it's logical to do so
         expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
-        while(expectedValue>0)
+        while(expectedValue>0.0-compensationValue && Glados.getPlayerGameValue()>0)
         {
             Glados.drawCard(true,deckKnownToGlados,actualDeck);
             SetConsoleTextAttribute(h,14);
@@ -913,7 +926,7 @@ int main()
         gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Glados.getPotMoney()-blindBet);
         limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
         humanTreeWinProb = humanTreeWinProbability(deckKnownToGlados,Human.getPlayerOpenCardValue(),handNodeVector,playerSatistactionValue,Glados.getTotalValueOfHand());
-        gladosInitialBetRaise = gladosBetRaiseFunction(humanTreeWinProb,limit);
+        gladosInitialBetRaise = gladosBetRaiseFunction(mt_rng,humanTreeWinProb,limit);
         moneyInPot = 2*blindBet;
 
         if(Glados.getTotalNumberOfCards()==2)
@@ -968,7 +981,7 @@ int main()
 
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
-                gladosExtraBetRaise = gladosBetRaiseFunction(bustedProb,limit);
+                gladosExtraBetRaise = gladosBetRaiseFunction(mt_rng,bustedProb,limit);
                 Glados.putMoneyInPot(gladosExtraBetRaise);
 
                 //if winProb is off the roof, raise the bet to force the human to retreat or think twice when standing
@@ -1031,9 +1044,7 @@ int main()
                         roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
                         break;
                     }
-
                 }
-
             }
             else if(question=="stand")
             {
@@ -1057,11 +1068,15 @@ int main()
                     break;
                 }
             }
-            else
+            else if(question=="retreat")
             {
                 SetConsoleTextAttribute(h,4);
                 roundEndFunction(Glados,Human, true, false,deckKnownToGlados);
                 break;
+            }
+            else
+            {
+                cout<<"You have a typo, try again"<<endl;
             }
         }
     }
