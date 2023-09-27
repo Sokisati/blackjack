@@ -769,12 +769,18 @@ int gladosBetRaiseFunction(mt19937& rng, double winProb, int limit)
     //should I add a bluff option? I don't know
     if(winProb<0.75)
     {
-        if(randomNumber%3==0)
+        if(winProb<0.50)
         {
-            int lowest = limit*0.75;
-            int highest = limit - lowest;
-
-            betRaise = (mt()%highest) + lowest;
+            if(randomNumber%4==0)
+            {
+                int lowest = limit*0.75;
+                int highest = limit - lowest;
+                betRaise = (mt()%highest) + lowest;
+            }
+            else
+            {
+                betRaise = 0;
+            }
         }
         else
         {
@@ -1039,10 +1045,26 @@ int main()
                     }
                     else
                     {
-                        SetConsoleTextAttribute(h,2);
-                        cout<<"Glados retreats"<<endl;
-                        roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
-                        break;
+                        //draw a card, what's the worst that could happen? we were about to retreat anyway
+                        if(Glados.getPlayerGameValue()>0)
+                        {
+                            Glados.drawCard(true,deckKnownToGlados,actualDeck);
+                        }
+                        winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
+                        gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
+
+                        if(gladosStands)
+                        {
+                            cout<<"Glados matches your bet"<<endl;
+                            Glados.putMoneyInPot(betRaise);
+                        }
+                        else
+                        {
+                            SetConsoleTextAttribute(h,2);
+                            cout<<"Glados retreats"<<endl;
+                            roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
+                            break;
+                        }
                     }
                 }
             }
