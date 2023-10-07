@@ -554,31 +554,6 @@ double winProbabilityFunction(Deck knownDeck, int openCardValue,int gladosHandVa
     return winProb;
 }
 
-double riskOfDrawingCardFunction(Deck knownDeck, int gladosHandValue)
-{
-    int possibleHandValue;
-    int busted  = 0;
-    int notBusted = 0;
-    double probability;
-
-    for(int i=0; i<knownDeck.getNumberOfCards(); i++)
-    {
-        possibleHandValue = gladosHandValue + knownDeck.getElementI(i);
-
-        if(possibleHandValue>21)
-        {
-            busted++;
-        }
-        else
-        {
-            notBusted++;
-        }
-    }
-
-    probability = static_cast<double>(busted)/(notBusted+busted);
-    return probability;
-}
-
 double expectedValueFunction(Deck knownDeck, int gladosHandValue, int playerOpenCardValue, int numberOfUnknownCards)
 {
     //IMPORTANT NOTE: SOMEHOW, THE PROBABILITY OF DRAWING A SPECIFIC CARD IS SAME, IRRELEVANT FROM NUMBER OF UNKNOWN OPPONENT CARDS.
