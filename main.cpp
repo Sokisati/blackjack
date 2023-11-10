@@ -634,7 +634,7 @@ bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int be
 
     toleranceBarDivide = 4;
 
-    //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep retreating, waiting for the best moment
+    //compensation is needed because when the blind bet is high (relative to starting money), you can't just keep folding, waiting for the best moment
     //I mean, with the discrete tolerance states, is it really needed? I really don't know
     double compensation = static_cast<double>(blindBet)/(startingMoney);
 
@@ -746,7 +746,7 @@ int gladosBetRaiseFunction(mt19937& rng, double winProb, int limit)
     {
         if(winProb<0.50)
         {
-            if(randomNumber%4==0)
+            if(randomNumber%3==0)
             {
                 int lowest = limit*0.75;
                 int highest = limit - lowest;
@@ -939,7 +939,7 @@ int main()
                 cout<<"5 card game! Your hand is considered 21 now"<<endl;
                 SetConsoleTextAttribute(h,15);
             }
-            cout<<"Draw, raise, stand or retreat"<<endl;
+            cout<<"Draw, raise, stand or fold"<<endl;
             cin>>question;
 
             if(question=="draw")
@@ -962,10 +962,12 @@ int main()
 
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
+                cout<<"human busted: "<<bustedProb<<endl;
+                cout<<"win prob: "<<winProb<<endl;
                 gladosExtraBetRaise = gladosBetRaiseFunction(mt_rng,bustedProb,limit);
                 Glados.putMoneyInPot(gladosExtraBetRaise);
 
-                //if winProb is off the roof, raise the bet to force the human to retreat or think twice when standing
+                //if winProb is off the roof, raise the bet to force the human to fold or think twice when standing
                 if(gladosInitialBetRaise==0 && gladosExtraBetRaise!=0 && !messageDisplayed)
                 {
                     SetConsoleTextAttribute(h,11);
@@ -1013,14 +1015,14 @@ int main()
                         gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
                     }
 
-                    if(gladosStands)
+                    if(gladosStands || gladosInitialBetRaise!=0)
                     {
                         cout<<"Glados matches your bet"<<endl;
                         Glados.putMoneyInPot(betRaise);
                     }
                     else
                     {
-                        //draw a card, what's the worst that could happen? we were about to retreat anyway
+                        //draw a card, what's the worst that could happen? we were about to fold anyway
                         if(Glados.getPlayerGameValue()>0)
                         {
                             Glados.drawCard(true,deckKnownToGlados,actualDeck);
@@ -1036,7 +1038,7 @@ int main()
                         else
                         {
                             SetConsoleTextAttribute(h,2);
-                            cout<<"Glados retreats"<<endl;
+                            cout<<"Glados folds"<<endl;
                             roundEndFunction(Glados,Human, false, false,deckKnownToGlados);
                             break;
                         }
@@ -1065,7 +1067,7 @@ int main()
                     break;
                 }
             }
-            else if(question=="retreat")
+            else if(question=="fold")
             {
                 SetConsoleTextAttribute(h,4);
                 roundEndFunction(Glados,Human, true, false,deckKnownToGlados);
