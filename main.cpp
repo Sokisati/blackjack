@@ -962,8 +962,6 @@ int main()
 
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
-                cout<<"human busted: "<<bustedProb<<endl;
-                cout<<"win prob: "<<winProb<<endl;
                 gladosExtraBetRaise = gladosBetRaiseFunction(mt_rng,bustedProb,limit);
                 Glados.putMoneyInPot(gladosExtraBetRaise);
 
