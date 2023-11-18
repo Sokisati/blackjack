@@ -556,8 +556,8 @@ double winProbabilityFunction(Deck knownDeck, int openCardValue,int gladosHandVa
 
 double expectedValueFunction(Deck knownDeck, int gladosHandValue, int playerOpenCardValue, int numberOfUnknownCards)
 {
-    //IMPORTANT NOTE: SOMEHOW, THE PROBABILITY OF DRAWING A SPECIFIC CARD IS SAME, IRRELEVANT FROM NUMBER OF UNKNOWN OPPONENT CARDS.
-    //HOW? NO IDEA, BUT I DID THE MATH AND IT'S ALWAYS THE SAME
+    //NOTE TO MYSELF: SOMEHOW, THE PROBABILITY OF DRAWING A SPECIFIC CARD IS SAME, IRRELEVANT FROM NUMBER OF UNKNOWN OPPONENT CARDS.
+    //HOW? NO IDEA, BUT I DID THE MATH AND IT'S ALWAYS THE SAME. WEIRD
 
     vector<int> originalDeck = knownDeck.getCards();
     double expectedValue=0;
@@ -895,7 +895,7 @@ int main()
 
         //glados shall draw a card as long as it's logical to do so
         expectedValue = expectedValueFunction(deckKnownToGlados,Glados.getTotalValueOfHand(),Human.getPlayerOpenCardValue(),Human.getNumberOfUnknownCards());
-        while(expectedValue>0.0-compensationValue && Glados.getPlayerGameValue()>0)
+        while(expectedValue>0.0-compensationValue && Glados.getPlayerGameValue()>0 && Glados.getTotalNumberOfCards()<5)
         {
             Glados.drawCard(true,deckKnownToGlados,actualDeck);
             SetConsoleTextAttribute(h,14);
@@ -1024,6 +1024,7 @@ int main()
                         if(Glados.getPlayerGameValue()>0)
                         {
                             Glados.drawCard(true,deckKnownToGlados,actualDeck);
+                            cout<<"Glados drew a card"<<endl;
                         }
                         winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                         gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
