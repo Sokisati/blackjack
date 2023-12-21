@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <windows.h>
 
-
 using namespace std;
 
 mt19937 mt(time(nullptr));
@@ -340,15 +339,12 @@ void humanTreeRecursiveFunction(vector<handNode> &handNodeVector, Deck knownDeck
     int firstNodeID;
     int lastNodeID;
 
-    for(int i=lastRunFirstNodeID; i<=lastRunLastNodeID; i++)
-    {
-        if(handNodeVector[i].value<limit)
-        {
+    for(int i=lastRunFirstNodeID; i<=lastRunLastNodeID; i++){
+        if(handNodeVector[i].value<limit){
             knownDeckCopy = originalVector;
 
             // Remove the cards that CAN'T be drawn, starting from the last element
-            for (auto it = handNodeVector[i].cardVector.begin() + 1; it != handNodeVector[i].cardVector.end(); ++it)
-            {
+            for (auto it = handNodeVector[i].cardVector.begin() + 1; it != handNodeVector[i].cardVector.end(); ++it){
                 int cardThatWillBeRemoved = *it; // Get the current card (excluding the open card value)
                 knownDeckCopy = eraseFunction(cardThatWillBeRemoved,knownDeckCopy);
             }
@@ -466,7 +462,8 @@ int combinationFunction(int samplePool, int selection)
     return result;
 }
 
-void generateCombinations(Deck knownDeck, int cardDraw, int start_index, vector<int>& current_combination, vector<vector<int>>& combinations) {
+void generateCombinations(Deck knownDeck, int cardDraw, int start_index, vector<int>& current_combination, vector<vector<int>>& combinations)
+{
     if (current_combination.size() == cardDraw) {
         combinations.push_back(current_combination);
         return;
@@ -602,7 +599,6 @@ void dealCardsFunction(mt19937& rng, Deck &knownDeck, Deck &actualDeck, Player &
     int randomNumber;
     int handValue = 0;
     int randomCard;
-
     //for glados
     for(int i=1; i<=2; i++)
     {
@@ -618,9 +614,7 @@ void dealCardsFunction(mt19937& rng, Deck &knownDeck, Deck &actualDeck, Player &
         randomCard = actualDeck.getElementI(randomNumber);
         SubjectHuman.drawCard(false,knownDeck,actualDeck);
     }
-
     knownDeck.removeCard(SubjectHuman.getPlayerOpenCardValue());
-
 }
 
 bool gladosStandFunction(double winProb, int blindBet, int startingMoney, int betRange, int betRaiseSum)
@@ -741,7 +735,7 @@ int gladosBetRaiseFunction(mt19937& rng, double winProb, int limit)
 {
     int betRaise;
     int randomNumber = mt();
-    //should I add a bluff option? I don't know
+    //should I keep the bluff option? I don't know
     if(winProb<0.75)
     {
         if(winProb<0.50)
@@ -820,6 +814,8 @@ int main()
     mt19937 mt_rng(time(nullptr));
     HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
 
+    vector<int> testVector;
+
     int startingMoney,blindBet,maxBetRaiseForPlayer;
     int betRaise,moneyInPot, gladosInitialBetRaise,gladosExtraBetRaise = 0;
     int playerSatistactionValue = 18;
@@ -838,13 +834,11 @@ int main()
     bool matchInitialRaise;
     bool matchExtraRaise;
 
-    startingMoney = 100;
-    blindBet = 15;
-    maxBetRaiseForPlayer = 50;
+    startingMoney = 1000;
+    blindBet = 165;
+    maxBetRaiseForPlayer = 350;
     betRange = maxBetRaiseForPlayer - blindBet;
     compensationValue = (static_cast<double>(maxBetRaiseForPlayer-blindBet)/(startingMoney))/2;
-
-    cout<<"c"<<compensationValue<<endl;
 
     //create the players
     Player Glados(startingMoney);
@@ -858,6 +852,7 @@ int main()
 
     while(Glados.getWallet()>blindBet && Human.getWallet()>blindBet)
     {
+        cout<<"size"<<handNodeVector.size()<<endl;
         SetConsoleTextAttribute(h,15);
         gladosInitialBetRaise = 0;
         gladosExtraBetRaise = 0;
@@ -959,7 +954,6 @@ int main()
                 //update win probability
                 winProb = winProbabilityFunction(deckKnownToGlados,Human.getPlayerOpenCardValue(),Glados.getTotalValueOfHand(),Human.getNumberOfUnknownCards());
                 limit = betRaiseLimitFunction(Glados.getPotMoney(),Glados.getWallet(),Human.getWallet(),maxBetRaiseForPlayer);
-
                 //corner him if he is expected to be busted
                 bustedProb = humanBustedProbabilityFunction(Human,deckKnownToGlados,Human.getNumberOfUnknownCards());
                 gladosExtraBetRaise = gladosBetRaiseFunction(mt_rng,bustedProb,limit);
