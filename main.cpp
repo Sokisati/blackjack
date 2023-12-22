@@ -1007,7 +1007,7 @@ int main()
                         gladosStands = gladosStandFunction(winProb,blindBet,startingMoney,betRange,Human.getPotMoney()-blindBet);
                     }
 
-                    if(gladosStands || gladosInitialBetRaise!=0)
+                    if(gladosStands || Glados.getPotMoney()>blindBet)
                     {
                         cout<<"Glados matches your bet"<<endl;
                         Glados.putMoneyInPot(betRaise);
