@@ -302,13 +302,20 @@ public:
 
 vector<int> eraseFunction(int number, vector<int> vector)
 {
+    bool error = true;
     for(int i=0; i<vector.size(); i++)
     {
         if(vector[i]==number)
         {
+            error = false;
             vector.erase(vector.begin()+i);
             break;
         }
+    }
+
+    if(error)
+    {
+        cout<<"ERROR AT CARD REMOVAL"<<"\n";
     }
     return vector;
 }
